@@ -10,9 +10,12 @@ import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import com.androidnative.speedkotlin.business.CAverage
 import com.androidnative.speedkotlin.business.CLocation
 import com.androidnative.speedkotlin.utils.RC_FINE_LOCATION
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.*
+import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,9 +25,17 @@ class MainActivity : AppCompatActivity() {
 
     private var mSpeedResult: Short = 0
 
+    private lateinit var mJob: Job
+
+    private val mCalculator: CAverage by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        CoroutineScope(Dispatchers.Main).launch {
+            mJob = doJob()
+        }
 
         doLocate()
     }
@@ -69,12 +80,36 @@ class MainActivity : AppCompatActivity() {
         override fun onLocationChanged(location: Location) {
             val myLocation = CLocation(location)
             mSpeedCounter.text = "${myLocation.speed.toShort()}"
+            mSpeedResult = myLocation.speed.toShort()
         }
 
         override fun onStatusChanged(p0: String?, p1: Int, p2: Bundle?) {}
         override fun onProviderEnabled(p0: String?) {}
         override fun onProviderDisabled(p0: String?) {}
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mJob.cancel()
+    }
+
+    /**
+     *  Coroutine
+     */
+
+    private fun doJob() : Job = CoroutineScope(Dispatchers.Main).launch {
+        while (true) {
+            delay(1000)
+            if (mSpeedResult != 0.toShort()) {
+                mCalculator.value = mSpeedResult
+                average.text = mCalculator.getResult()
+            } else {
+                average.text = ""
+            }
+        }
+    }
+
+
 }
 
 

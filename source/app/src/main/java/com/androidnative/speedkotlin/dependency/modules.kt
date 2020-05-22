@@ -4,5 +4,5 @@ import com.androidnative.speedkotlin.business.CAverage
 import org.koin.dsl.module
 
 val appModule = module {
-    single { CAverage(get(), get(), get()) }
+    single { CAverage(0.0,0, 0) }
 }
