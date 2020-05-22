@@ -7,31 +7,34 @@ import android.location.LocationListener
 import android.location.LocationManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.fragment.app.Fragment
 import com.androidnative.speedkotlin.business.CAverage
 import com.androidnative.speedkotlin.business.CLocation
+import com.androidnative.speedkotlin.utils.MAIN_FRAGMENT_LAYOUT
+import com.androidnative.speedkotlin.utils.MAIN_FRAGMENT_TAG
 import com.androidnative.speedkotlin.utils.RC_FINE_LOCATION
-import kotlinx.android.synthetic.main.activity_main.*
+import com.androidnative.speedkotlin.utils.STOP_FRAGMENT_TAG
 import kotlinx.coroutines.*
 import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity() {
 
     private var locationManager: LocationManager? = null
-
-    private lateinit var mSpeedCounter: TextView
-
     private var mSpeedResult: Short = 0
-
     private lateinit var mJob: Job
-
     private val mCalculator: CAverage by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        if (savedInstanceState == null){
+            supportFragmentManager.beginTransaction()
+                .add(MAIN_FRAGMENT_LAYOUT, RunFragment.newInstance(), MAIN_FRAGMENT_TAG)
+                .commit()
+        }
 
         CoroutineScope(Dispatchers.Main).launch {
             mJob = doJob()
@@ -58,9 +61,6 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "no location available", Toast.LENGTH_SHORT).show()
             }
         }
-
-        mSpeedCounter = counter_speed
-
     }
 
     /**
@@ -79,7 +79,6 @@ class MainActivity : AppCompatActivity() {
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
             val myLocation = CLocation(location)
-            mSpeedCounter.text = "${myLocation.speed.toShort()}"
             mSpeedResult = myLocation.speed.toShort()
         }
 
@@ -94,22 +93,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     *  Coroutine
+     *  Coroutine : Fragment choice
      */
 
     private fun doJob() : Job = CoroutineScope(Dispatchers.Main).launch {
         while (true) {
             delay(1000)
-            if (mSpeedResult != 0.toShort()) {
-                mCalculator.value = mSpeedResult
-                average.text = mCalculator.getResult()
+            val fragment: Fragment? = supportFragmentManager.findFragmentByTag(MAIN_FRAGMENT_TAG)
+            if (mSpeedResult.toInt() != 0){
+                if (fragment != null){
+                    mCalculator.value = mSpeedResult
+                    (fragment as RunFragment).updateUI("$mSpeedResult", mCalculator.getResult())
+                } else {
+                    supportFragmentManager.beginTransaction().replace(MAIN_FRAGMENT_LAYOUT, RunFragment.newInstance(), MAIN_FRAGMENT_TAG).commit()
+                }
             } else {
-                average.text = ""
+                fragment?.let {
+                    supportFragmentManager.beginTransaction().replace(MAIN_FRAGMENT_LAYOUT, StopFragment.newInstance(mCalculator.average.toShort()), STOP_FRAGMENT_TAG).commit()
+                }
             }
         }
     }
-
-
 }
 
 

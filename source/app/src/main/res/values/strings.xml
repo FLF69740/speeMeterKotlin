@@ -3,4 +3,6 @@
     <string name="screen_1_title">SCREEN 1</string>
     <string name="default_number">0</string>
     <string name="kmh">Km/h</string>
+    <string name="screen2">Screen 2 : STOP</string>
+    <string name="screen_2_subtitle">vitesse moyenne du précédent trajet :</string>
 </resources>
